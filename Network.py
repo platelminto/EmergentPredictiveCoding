@@ -5,6 +5,7 @@ from ModelState import ModelState
 import functions
 from torch import nn
 
+
 class Network(torch.nn.Module):
     """
     Recurrent Neural Network class containing parameters of the network
@@ -24,8 +25,9 @@ class Network(torch.nn.Module):
         self.prevbatch = prevbatch
         self.device = device
 
+    # x is the input at this timestep, state is the hidden state from the previous timestep
     def forward(self, x, state=None, synap_trans=False, mask=None):
-
+        # state is the within-RNN-run state of the network, so 0 at first pass but is then passed as sequence continues
         if state is None:
             state = self.init_state(x.shape[0])
         h = state
@@ -84,7 +86,7 @@ class State(ModelState):
                             },
                             device)
 
-    def run(self, batch, loss_fn, state=None):
+    def run_batch(self, batch, loss_fn: str, state=None):
         """
         Runs a batch of sequences through the model
 
@@ -97,8 +99,10 @@ class State(ModelState):
         if state == None:
             h = self.model.init_state(batch_size)
         else:
+            # prevbatch? if this is internal RNN state, shouldnt we use 0 (ie the else)? so prevbatch does always seem
+            # to be false, so yes, we always start with a new initial state for each RNN run. but it is passed, in case
+            # we want to change this.
             if self.model.prevbatch:
-                
                 h = state
             else:
                 h = self.model.init_state(batch_size)
@@ -106,9 +110,9 @@ class State(ModelState):
         loss = torch.zeros(1, dtype=torch.float, requires_grad=True)
         loss = loss.to(self.device)
         for i in range(sequence_length):
-            h, l_a = self.model(batch[i], state=h) # l_a is now a list of potential loss terms 
-            
-            loss = loss + self.loss(l_a, loss_fn) 
+            # runs for the forward pass from above
+            h, [pre_loss, post_loss, weight_loss] = self.model(batch[i], state=h)  # these 3 are lists of potential losses
+            loss = loss + self.loss(loss_fn, pre_loss, post_loss, weight_loss)
         state = h
         return loss, loss.detach(), state
     
@@ -121,7 +125,7 @@ class State(ModelState):
         return next_state
         
 
-    def loss(self, loss_terms, loss):
+    def loss(self, loss: str, pre_loss, post_loss, weights_loss):
         loss_t1, loss_t2,  beta = loss, None, 1
         # split for weighting
         if 'beta' in loss:
@@ -131,8 +135,8 @@ class State(ModelState):
             loss_t1, loss_t2 = loss.split('and')
     
         # parse loss terms
-        loss_fn_t1, loss_arg_t1 = functions.parse_loss(loss_t1, loss_terms)
-        loss_fn_t2, loss_arg_t2 = functions.parse_loss(loss_t2, loss_terms)
+        loss_fn_t1, loss_arg_t1 = functions.parse_loss(loss_t1, pre_loss, post_loss, weights_loss)
+        loss_fn_t2, loss_arg_t2 = functions.parse_loss(loss_t2, pre_loss, post_loss, weights_loss)
                     
         return loss_fn_t1(loss_arg_t1) + beta*loss_fn_t2(loss_arg_t2)
 

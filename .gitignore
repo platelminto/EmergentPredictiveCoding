@@ -1,1 +1,4 @@
-models/patterns_rev/seeded_mnist/*
+.idea/
+**/__pycache__/
+datasets/
+models/patterns_rev

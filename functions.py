@@ -66,11 +66,10 @@ def L2Loss(x:torch.FloatTensor):
 def Linear(x:torch.FloatTensor):
     return x
 
-def parse_loss(args, terms):
+def parse_loss(args, pre_loss, post_loss, weights_loss):
     if args == None:
         return L1Loss, torch.tensor(0.0)
     
-    pre, post, weights = terms
     arg1, arg2 = args.split('_')
     if arg1 == 'l1':
         loss_fn = L1Loss
@@ -78,11 +77,11 @@ def parse_loss(args, terms):
         loss_fn = L2Loss
         
     if arg2 == 'pre':
-        loss_arg = pre
+        loss_arg = pre_loss
     elif arg2 == 'post':
-        loss_arg = post
+        loss_arg = post_loss
     else:
-        loss_arg = weights
+        loss_arg = weights_loss
         
     return loss_fn, loss_arg
             

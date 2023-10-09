@@ -1,13 +1,14 @@
 import sys
 import torch
-from typing import Callable
+
+import Network
 import functions
-from ModelState import ModelState
 from Dataset import Dataset
 
-def test_epoch(ms: ModelState,
+
+def test_epoch(ms: Network.State,
                dataset: Dataset,
-               loss_fn: Callable[[torch.FloatTensor, torch.FloatTensor], torch.FloatTensor],
+               loss_fn: str,
                batch_size: int,
                sequence_length: int):
     batches, labels = dataset.create_batches(batch_size=batch_size, sequence_length=sequence_length, shuffle=True)
@@ -32,17 +33,17 @@ def test_epoch(ms: ModelState,
     print("Test loss:     {:.8f}".format(tot_loss))
     return tot_loss, tot_res
 
-def test_batch(ms: ModelState,
+def test_batch(ms: Network.State,
                batch: torch.FloatTensor,
-               loss_fn: Callable[[torch.FloatTensor, torch.FloatTensor], torch.FloatTensor],
-               state) -> float:
-    loss, res, state = ms.run(batch, loss_fn, state)
+               loss_fn: str,
+               state):
+    loss, res, state = ms.run_batch(batch, loss_fn, state)
     return loss.item(), res, state
     
-def train_batch(ms: ModelState,
+def train_batch(ms: Network.State,
                 batch: torch.FloatTensor,
-                loss_fn: Callable[[torch.FloatTensor, torch.FloatTensor], torch.FloatTensor],
-                state) -> float:
+                loss_fn: str,
+                state):
 
     loss, res, state = ms.run(batch, loss_fn, state)
    
@@ -50,12 +51,12 @@ def train_batch(ms: ModelState,
     ms.zero_grad()
     return loss.item(), res, state
 
-def train_epoch(ms: ModelState,
+def train_epoch(ms: Network.State,
                 dataset: Dataset,
-                loss_fn: Callable[[torch.FloatTensor, torch.FloatTensor], torch.FloatTensor],
+                loss_fn: str,
                 batch_size: int,
                 sequence_length: int,
-                verbose = True) -> float:
+                verbose = True):
 
     batches, labels = dataset.create_batches(batch_size=batch_size, sequence_length=sequence_length, shuffle=True)
     num_batches = batches.shape[0]
@@ -81,16 +82,16 @@ def train_epoch(ms: ModelState,
 
     tot_loss /= num_batches
     tot_res /= num_batches
-    
-    
+
     print("Training loss: {:.8f}".format(tot_loss))
 
     return tot_loss, tot_res, state.detach()
 
-def train(ms: ModelState,
+
+def train(ms: Network.State,
           train_ds: Dataset,
           test_ds: Dataset,
-          loss_fn: Callable[[torch.FloatTensor, torch.FloatTensor], torch.FloatTensor],
+          loss_fn: str,
           num_epochs: int = 1,
           batch_size: int = 32,
           sequence_length: int = 3,
