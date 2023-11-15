@@ -26,9 +26,10 @@ Create and train ten instances of energy efficient RNNs for MNIST
 """
 n_instances = 1  # number of model instances
 # losses = [str(beta)+'beta'+'l1_postandl2_weights' for beta in [3708.0] ]
-losses = ['l1_pre', 'l1_post', [str(beta) + 'beta' + 'l1_postandl2_weights' for beta in [3708.0]][0]]
-seeds = [[random.randint(0,10000) for i in range(n_instances)]for j in range(len(losses))]
-#seeds = [[random.randint(0, 10000) for i in range(n_instances)]]
+# losses = ['l1_pre', 'l1_post', [str(beta) + 'beta' + 'l1_postandl2_weights' for beta in [3708.0]][0]]
+losses = ['l1_pre']
+# seeds = [[random.randint(0,10000) for i in range(n_instances)], \
+seeds = [[random.randint(0, 10000) for i in range(n_instances)]]
 # train MNIST networks
 
 for loss_ind, loss in enumerate(losses):

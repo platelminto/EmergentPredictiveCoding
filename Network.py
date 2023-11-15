@@ -43,7 +43,7 @@ class Network(torch.nn.Module):
                 a = h @ self.W + x_pad
 
         h = self.activation_func(a)
-        # return state vector and list of losses 
+        # return state vector and list of parameters (pre-activation, post-act, & weights)
         return h, [a, h, self.W]
 
     def init_state(self, batch_size):
@@ -111,10 +111,10 @@ class State(ModelState):
         loss = loss.to(self.device)
         for i in range(sequence_length):
             # runs for the forward pass from above
-            h, [pre_loss, post_loss, weight_loss] = self.model(batch[i], state=h)  # these 3 are lists of potential losses
-            loss = loss + self.loss(loss_fn, pre_loss, post_loss, weight_loss)
+            h, [pre_activation_args, post_activation_args, weights] = self.model(batch[i], state=h)  # these 3 are lists of potential losses
+            loss = loss + self.loss(loss_fn, pre_activation_args, post_activation_args, weights)
         state = h
-        return loss, loss.detach(), state
+        return loss, state
     
     def get_next_state(self, state, x):
         """
@@ -123,9 +123,8 @@ class State(ModelState):
         """
         next_state, _ = self.model(x, state)
         return next_state
-        
 
-    def loss(self, loss: str, pre_loss, post_loss, weights_loss):
+    def loss(self, loss: str, pre_activation_args, post_activation_args, weights):
         loss_t1, loss_t2,  beta = loss, None, 1
         # split for weighting
         if 'beta' in loss:
@@ -135,8 +134,12 @@ class State(ModelState):
             loss_t1, loss_t2 = loss.split('and')
     
         # parse loss terms
-        loss_fn_t1, loss_arg_t1 = functions.parse_loss(loss_t1, pre_loss, post_loss, weights_loss)
-        loss_fn_t2, loss_arg_t2 = functions.parse_loss(loss_t2, pre_loss, post_loss, weights_loss)
+        loss_fn_t1, loss_arg_t1 = functions.get_loss_fn_and_arg(
+            loss_t1, pre_activation_args, post_activation_args, weights
+        )
+        loss_fn_t2, loss_arg_t2 = functions.get_loss_fn_and_arg(
+            loss_t2, pre_activation_args, post_activation_args, weights
+        )
                     
         return loss_fn_t1(loss_arg_t1) + beta*loss_fn_t2(loss_arg_t2)
 
@@ -171,9 +174,9 @@ class State(ModelState):
     def zero_grad(self):
         self.optimizer.zero_grad()
 
-    def on_results(self, epoch:int, train_res, test_res, m_state):
+    def on_results(self, epoch:int, train_loss, test_loss, m_state):
         """Save training metadata
         """
         h, Wl1,Wl2 = m_state
-        functions.append_dict(self.results, {"train loss": train_res.cpu().numpy(), "test loss": test_res.cpu().numpy(), "h": h, "Wl1": Wl1, "Wl2":Wl2})
+        functions.append_dict(self.results, {"train loss": train_loss, "test loss": test_loss, "h": h, "Wl1": Wl1, "Wl2":Wl2})
         self.epochs += 1

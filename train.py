@@ -20,36 +20,34 @@ def test_epoch(ms: Network.State,
     for i, batch in enumerate(batches):
 
         with torch.no_grad():
-            loss, res, state = test_batch(ms, batch, loss_fn, state)
+            loss, state = test_batch(ms, batch, loss_fn, state)
     
         tot_loss += loss
 
-        if tot_res is None:
-            tot_res = res
-        else:
-            tot_res += res  
     tot_loss /= num_batches
-    tot_res /= num_batches
     print("Test loss:     {:.8f}".format(tot_loss))
-    return tot_loss, tot_res
+    return tot_loss
+
 
 def test_batch(ms: Network.State,
                batch: torch.FloatTensor,
                loss_fn: str,
                state):
-    loss, res, state = ms.run_batch(batch, loss_fn, state)
-    return loss.item(), res, state
-    
+    loss, state = ms.run_batch(batch, loss_fn, state)
+    return loss.item(), state
+
+
 def train_batch(ms: Network.State,
                 batch: torch.FloatTensor,
                 loss_fn: str,
                 state):
 
-    loss, res, state = ms.run(batch, loss_fn, state)
+    loss, state = ms.run_batch(batch, loss_fn, state)
    
     ms.step(loss)
     ms.zero_grad()
-    return loss.item(), res, state
+    return loss.item(), state
+
 
 def train_epoch(ms: Network.State,
                 dataset: Dataset,
@@ -64,28 +62,21 @@ def train_epoch(ms: Network.State,
 
     t = functions.Timer()
     tot_loss = 0.
-    tot_res = None
-    state = None 
+    state = None
     for i, batch in enumerate(batches):
 
-        loss, res, state = train_batch(ms, batch, loss_fn, state)
+        loss, state = train_batch(ms, batch, loss_fn, state)
         tot_loss += loss
-
-        if tot_res is None:
-            tot_res = res
-        else:
-            tot_res += res
 
         if verbose and (i+1) % int(num_batches/10) == 0:
             dt = t.get(); t.lap()
             print("Batch {}/{}, ms/batch: {}, loss: {:.5f}".format(i, num_batches, dt / (num_batches/10), tot_loss/(i)))
 
     tot_loss /= num_batches
-    tot_res /= num_batches
 
     print("Training loss: {:.8f}".format(tot_loss))
 
-    return tot_loss, tot_res, state.detach()
+    return tot_loss, state.detach()
 
 
 def train(ms: Network.State,
@@ -105,15 +96,15 @@ def train(ms: Network.State,
     for epoch in range(ms.epochs+1, ms.epochs+1 + num_epochs):
         print("Epoch {}, Lossfn {}".format(epoch, ms_name))
 
-        train_loss, train_res, h = train_epoch(ms, train_ds, loss_fn, batch_size, sequence_length, verbose=verbose)
+        train_loss, h = train_epoch(ms, train_ds, loss_fn, batch_size, sequence_length, verbose=verbose)
 
-        test_loss, test_res = test_epoch(ms, test_ds, loss_fn, batch_size, sequence_length)
+        test_loss = test_epoch(ms, test_ds, loss_fn, batch_size, sequence_length)
 #        if epoch == 1 or epoch == num_epochs - 10:
 #            W = ms.model.W.detach()
 #            torch.save(W, 'models/'+ms.title+'W_'+ str(epoch)+'.pt')
         h, W_l1, W_l2 = functions.L1Loss(h),  functions.L1Loss(ms.model.W.detach()), functions.L2Loss(ms.model.W.detach())
         m_state = [[h.cpu().numpy()], [W_l1.cpu().numpy()], [W_l2.cpu().numpy()]]
-        ms.on_results(epoch, train_res, test_res, m_state)
+        ms.on_results(epoch, train_loss, test_loss, m_state)
 
         if (test_loss < best_loss):
             best_loss = test_loss

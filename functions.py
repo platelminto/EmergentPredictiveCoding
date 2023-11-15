@@ -20,6 +20,7 @@ def get_time() -> int:
     '''Returns current time in ms'''
     return int(round(time.time() * 1000))
 
+
 class Timer:
     def __init__(self):
         self.reset()
@@ -51,22 +52,25 @@ class Timer:
             else:
                 return "{}:{:02}:{:02}.{:03}".format(h,m,s,ms)
 
-def append_dict(dict_a:Dict[str,np.ndarray], dict_b:Dict[str,np.ndarray]):
+
+def append_dict(dict_a:Dict[str,np.ndarray], dict_b:Dict[str, float]):
     for k, v in dict_b.items():
-        dict_a[k] = np.concatenate((dict_a[k], v))
+        dict_a[k] = np.append(dict_a[k], v)
+
 
 def L1Loss(x:torch.FloatTensor):
-   
     return torch.mean(torch.abs(x))
 
+
 def L2Loss(x:torch.FloatTensor):
-    
     return torch.mean(torch.pow(x, 2))
+
 
 def Linear(x:torch.FloatTensor):
     return x
 
-def parse_loss(args, pre_loss, post_loss, weights_loss):
+
+def get_loss_fn_and_arg(args, pre_activation_args, post_activation_args, weights):
     if args == None:
         return L1Loss, torch.tensor(0.0)
     
@@ -77,16 +81,18 @@ def parse_loss(args, pre_loss, post_loss, weights_loss):
         loss_fn = L2Loss
         
     if arg2 == 'pre':
-        loss_arg = pre_loss
+        loss_arg = pre_activation_args
     elif arg2 == 'post':
-        loss_arg = post_loss
+        loss_arg = post_activation_args
     else:
-        loss_arg = weights_loss
+        loss_arg = weights
         
     return loss_fn, loss_arg
-            
+
+
 def init_params(size_x, size_y):
     return ((torch.rand(size_x, size_y) * 2.) - 1. ) * np.sqrt(1. / size_x)
+
 
 def normalize(x, p=2.0, dim=1):
     return F.normalize(x, p, dim)
