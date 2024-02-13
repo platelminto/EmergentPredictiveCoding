@@ -5,6 +5,8 @@ import Network
 import functions
 from Dataset import Dataset
 
+import matplotlib.pyplot as plt
+
 
 def test_epoch(ms: Network.State,
                dataset: Dataset,

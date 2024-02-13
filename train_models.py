@@ -6,6 +6,7 @@ import torch
 import os
 from functions import get_device
 from train import train
+import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser(description='device')
 parser.add_argument('--i', type=str, help='Device index')
@@ -26,12 +27,12 @@ Create and train ten instances of energy efficient RNNs for MNIST
 """
 n_instances = 1  # number of model instances
 # losses = [str(beta)+'beta'+'l1_postandl2_weights' for beta in [3708.0] ]
-# losses = ['l1_pre', 'l1_post', [str(beta) + 'beta' + 'l1_postandl2_weights' for beta in [3708.0]][0]]
-losses = ['l1_pre']
+losses = ['l1_pre', 'l1_post', [str(beta) + 'beta' + 'l1_postandl2_weights' for beta in [3708.0]][0]]
+# losses = ['l1_pre']
 # seeds = [[random.randint(0,10000) for i in range(n_instances)], \
-seeds = [[random.randint(0, 10000) for i in range(n_instances)]]
-# train MNIST networks
+seeds = [[random.randint(0,10000) for i in range(n_instances)] for j in range(len(losses))]
 
+# train MNIST networks
 for loss_ind, loss in enumerate(losses):
     for i in range(0, n_instances):
         print("loss", loss_ind, "instance", i)
@@ -51,6 +52,13 @@ for loss_ind, loss in enumerate(losses):
               batch_size=BATCH_SIZE,
               sequence_length=SEQ_LENGTH,
               verbose=False)
+
+        # plot test and train loss from net.results dict (keys: 'train loss', 'test loss')
+        plt.plot(net.results['train loss'], label='train loss')
+        plt.plot(net.results['test loss'], label='test loss')
+        plt.legend()
+        plt.title('Train and Test Loss for '+loss)
+        plt.show()
 
         # save model
         net.save()

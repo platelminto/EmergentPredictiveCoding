@@ -63,7 +63,7 @@ train_set, validation_set, test_set = mnist.load(val_ratio=0.0)
 # load pre, post MNIST networks
 nets = [[], [], []]
 
-NUM_INSTANCES=10
+NUM_INSTANCES=1
 # load networks for bootstrap
 losses = ['l1_pre','l1_post', [str(beta)+'beta'+'l1_postandl2_weights' for beta in [3708.0] ][0]]
 # set up dictionaries to fill in the data

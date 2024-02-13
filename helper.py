@@ -780,4 +780,4 @@ def model_activity_lesioned(net:ModelState, training_set:Dataset, test_set:Datas
             #mu_netles.append(m_netles.flatten().mean())
             #mu_input.append(m_input.mean().cpu().item())
             #mu_latent.append(m_latent.mean().cpu().item())   
-    return np.array(mu_net), np.array(mu_netles)
+    return np.array(mu_net.cpu()), np.array(mu_netles.cpu())
